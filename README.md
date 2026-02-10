@@ -349,6 +349,63 @@ Note that
 - openC910: Confirmed by inspecting the Verilog code
 - C920v1: Tested on SG2042
 
+## C906/C920v1 floating point underflow edge case bug
+
+On affected CPUs, the FPU fails to correctly detect an underflow exception in
+some edge cases, where such an exception is mandated by IEEE 754. This causes
+these CPUs to fail various floating point test suites.
+
+Reported at https://github.com/revyos/revyos/issues/17, in particular note [an
+official statement from Xuantie][underflow-xuantie-statement].
+
+[underflow-xuantie-statement]: https://github.com/revyos/revyos/issues/17#issuecomment-1865370138
+
+### PoC
+
+```c
+#include <stdio.h>
+
+unsigned long test_fflags(unsigned long);
+
+asm (
+	"	.pushsection .text\n\t"
+	"test_fflags:\n\t"
+	"	fmv.d.x fa0, a0\n\t"
+	"	fsflags zero\n\t"
+	"	fcvt.s.d fa0, fa0\n\t"
+	"	frflags a0\n\t"
+	"	ret\n\t"
+	"	.popsection"
+);
+
+int main() {
+	unsigned long val = 0x380fffffe1000000;
+	printf("test_fflags(%#lx) = %lu\n", val, test_fflags(val));
+}
+```
+
+(This test case is due to John R. Hauser, from [Berkeley SoftFloat
+FAQ][softfloat-faq].)
+
+[softfloat-faq]: http://www.jhauser.us/arithmetic/SoftFloat-3/doc/SoftFloat-FAQ.html
+
+On affected CPUs, the output is:
+
+```
+test_fflags(0x380fffffe1000000) = 1
+```
+
+The correct output is:
+
+```
+test_fflags(0x380fffffe1000000) = 3
+```
+
+### Affected variants
+
+- C906: Tested on CV1800B
+- C920v1: Tested on SG2042
+
 ## Reference
 
 This documentation contains information summarized from
