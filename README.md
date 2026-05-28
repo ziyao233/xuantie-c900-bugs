@@ -406,6 +406,27 @@ test_fflags(0x380fffffe1000000) = 3
 - C906: Tested on CV1800B
 - C920v1: Tested on SG2042
 
+## Writes might stick in C910/C920v1 store buffer for too long
+
+On affected CPUs, memory writes might stick in the store buffer for too long
+time when no more writes continue to show up, invisible to other cores and
+possibly leading to livelocks.
+
+Linux patch [[PATCH V5] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup](https://lore.kernel.org/all/20260421143154.1590156-1-guoren@kernel.org/)
+fixes the issue by forcing a fence in `WRITE_ONCE()` to drain the store buffer.
+
+### PoC
+
+According to the Linux patch, this could be triggered with lock_torture test
+program, especially with qspinlock enabled.
+
+### Affected variants
+
+Both untested, this information is provided by the Linux patch,
+
+- C910
+- C920v1
+
 ## Reference
 
 This documentation contains information summarized from
